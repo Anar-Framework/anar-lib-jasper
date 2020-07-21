@@ -38,7 +38,6 @@ import java.time.ZoneId;
 @Getter
 @Setter
 @AllArgsConstructor
-// @NoArgsConstructor
 @Builder
 @ToString
 @Audited
