@@ -25,6 +25,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RestController;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 @RestController
 @RequestMapping(value = "/api/config/reports")
@@ -61,4 +63,22 @@ public class ReportController {
         return service.delete(id);
     }
 
+    @GetMapping(value = "/download/{id}/{reportType}")
+    public HttpServletResponse downloadReport(@PathVariable("id") String id, @PathVariable("reportType") String reportType, HttpServletResponse response, HttpServletRequest request) throws IOException, Exception {
+        try{
+        Report reportRecord = this.service.findById(id);
+        String returnedPath = this.service.generatePdfJasperReportFromDBRecord(reportRecord);
+        System.out.println("report id +++++++++++++++++++++" + id);
+        System.out.println("report type +++++++++++++++++++++" + reportType);
+
+        response = this.service.downloadReport(returnedPath, response, id, reportType);
+
+
+        }
+        catch(Exception e){
+            System.out.println("Some error has occurred while preparing the pdf Report." + e.getMessage());
+            e.printStackTrace();
+        }
+        return response;
+    }
 }

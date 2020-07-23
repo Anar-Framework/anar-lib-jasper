@@ -32,6 +32,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import af.gov.anar.lib.jasper.service.ReportService;
 import af.gov.anar.lib.jasper.entity.Report;
 import af.gov.anar.lib.jasper.repository.ReportRepository;
+import javax.servlet.http.HttpServletResponse;
+import af.gov.anar.lib.jasper.util.FileDownloadUtil;
 
 @Service
 @PropertySource(value = "classpath:application.properties")
@@ -40,6 +42,9 @@ public class ReportService {
     @Autowired
     private ReportRepository repository;
     
+    @Autowired
+    FileDownloadUtil fileDownloadUtil;
+
     @Value("${spring.datasource.url}")
     private String datasourceUrl;
 
@@ -48,7 +53,7 @@ public class ReportService {
 
     @Value("${spring.datasource.password}")
     private String datasourcePassword;
-    
+
     public Report create(Report report){
         return repository.save(report);
     }
@@ -87,9 +92,10 @@ public class ReportService {
          */
 
         // Fetching the .jrxml file from the resources folder.
-        final InputStream stream = this.getClass().getResourceAsStream(jrxmlFile);
- 
+        final InputStream stream = this.getClass().getResourceAsStream(jrxmlFile); 
         String pdfFilePath = this.printJasperReport(stream, parameters);
+
+        System.out.println("Report File Saved:-----------------" + pdfFilePath);
 
         return pdfFilePath;
     }
@@ -124,9 +130,23 @@ public class ReportService {
 
         String pdfFilePath = this.printJasperReport(stream, parameters);
 
+        System.out.println("Report Parameters:-----------------" + reportRecord.getParameters());
+        System.out.println("Report File Saved:-----------------" + pdfFilePath);
+
         return pdfFilePath;
     }
     
+
+    public HttpServletResponse downloadReport(String filePath, HttpServletResponse response, String id, String reportType) throws Exception{
+        File file = new File(filePath);
+   
+        if (file.exists()) {
+            fileDownloadUtil.fileDownload(file, response);
+        }
+
+        return response;
+    }
+
     private String printJasperReport(InputStream stream, Map<String, Object> parameters) throws IOException, JRException{
         
         /**
@@ -157,5 +177,5 @@ public class ReportService {
         }
 
         return destFile;
-    }
+    } 
 }
