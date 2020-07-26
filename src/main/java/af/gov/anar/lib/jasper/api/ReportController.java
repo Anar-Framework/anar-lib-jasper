@@ -11,6 +11,7 @@ import java.util.List;
 import javax.validation.Valid;
 import java.util.*; 
 
+import java.sql.SQLException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import af.gov.anar.lib.jasper.service.ReportService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,12 +20,13 @@ import org.springframework.web.bind.annotation.*;
 import java.io.IOException;
 import net.sf.jasperreports.engine.JRException;
 import af.gov.anar.lib.jasper.entity.Report;
-import af.gov.anar.lib.jasper.service.ReportService;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RestController;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 @RestController
 @RequestMapping(value = "/api/config/reports")
@@ -61,4 +63,19 @@ public class ReportController {
         return service.delete(id);
     }
 
+    @GetMapping(value = "/download/{id}/{reportType}")
+	public void downloadReport(final HttpServletResponse response, final HttpServletRequest request,
+			@PathVariable("id") String id, @PathVariable("reportType") String reportType) throws IOException, JRException,SQLException ,Exception
+     {
+        try{
+            Report reportRecord = this.service.findById(id);
+            String returnedPath = this.service.generatePdfJasperReportFromDBRecord(reportRecord, reportType);
+
+            this.service.downloadReport(returnedPath, response, id, reportType);
+        }
+        catch(Exception e){
+            System.out.println("Some error has occurred while preparing the pdf Report.---------------" + e.getMessage());
+            e.printStackTrace();
+        }
+    }
 }
