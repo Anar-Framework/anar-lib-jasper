@@ -39,8 +39,10 @@ import net.sf.jasperreports.engine.export.JRXlsExporter;
 import net.sf.jasperreports.engine.JRExporter;
 import net.sf.jasperreports.engine.export.JRCsvExporter;
 import net.sf.jasperreports.engine.JRExporterParameter;
-import net.sf.jasperreports.engine.export.JRCsvExporterParameter;
 import net.sf.jasperreports.engine.export.JRXlsExporterParameter;
+import net.sf.jasperreports.export.SimpleCsvExporterConfiguration;
+import net.sf.jasperreports.export.SimpleExporterInput;
+import net.sf.jasperreports.export.SimpleWriterExporterOutput;
 
 @Service
 @PropertySource(value = "classpath:application.properties")
@@ -102,8 +104,6 @@ public class ReportService {
         final InputStream stream = this.getClass().getResourceAsStream(jrxmlFile); 
         String pdfFilePath = this.printJasperReport(stream, parameters, reportType);
 
-        System.out.println("Report File Saved:-----------------" + pdfFilePath);
-
         return pdfFilePath;
     }
 
@@ -137,9 +137,6 @@ public class ReportService {
 
         String pdfFilePath = this.printJasperReport(stream, parameters, reportType);
 
-        System.out.println("Report Parameters:-----------------" + reportRecord.getParameters());
-        System.out.println("Report File Saved:-----------------" + pdfFilePath);
-
         return pdfFilePath;
     }
     
@@ -167,28 +164,20 @@ public class ReportService {
         // The URL would look something like "jdbc:postgresql://localhost:5432/ebreshna_test?user=some_user&password=some_password"
         String url = String.format("%s?user=%s&password=%s", this.datasourceUrl, this.datasourceUsername, this.datasourcePassword);
         
+        // The Generated PDF file will be stored in a temp directory
+        String destFile = "";
+
         try{
             Connection conn = DriverManager.getConnection(url);
             
             final JasperPrint print = JasperFillManager.fillReport(report, parameters, conn);
             // Export the report to a PDF file.
 
-            System.out.println("Report Export Type------------------------------------" + reportType);
-            System.out.println("reportType == pdf------------------------------------" + (reportType.equals("pdf")));
-            System.out.println("reportType == excel------------------------------------" + (reportType.equals("excel")));
-            System.out.println("reportType == csv------------------------------------" + (reportType.equals("csv")));
-            
-            // The Generated PDF file will be stored in a temp directory
-            String destFile = "";
-
-            
             if(reportType.equals("pdf")){
-                System.out.println("generating pdf file report------------------------");
                 destFile = File.createTempFile("ebreshna-temp-report", ".pdf").getPath();
                 JasperExportManager.exportReportToPdfFile(print, destFile);
             }
             else if(reportType.equals("excel")){
-                System.out.println("generating pdf file report------------------------");
 
                 destFile = File.createTempFile("ebreshna-temp-report", ".xlsx").getPath();
 
@@ -208,13 +197,16 @@ public class ReportService {
                 exporter.exportReport();
             }
             else if(reportType.equals("csv")){
-                System.out.println("generating html file report------------------------");
                 destFile = File.createTempFile("ebreshna-temp-report", ".csv").getPath();
                 
                 JRCsvExporter exporter = new JRCsvExporter();
-
-                exporter.setParameter(JRCsvExporterParameter.INPUT_STREAM, print);
-                exporter.setParameter(JRCsvExporterParameter.OUTPUT_FILE_NAME, destFile);
+                exporter = new JRCsvExporter();
+                exporter.setExporterInput(new SimpleExporterInput(print));
+                exporter.setExporterOutput(new SimpleWriterExporterOutput(new File(destFile)));
+                SimpleCsvExporterConfiguration configuration = new SimpleCsvExporterConfiguration();
+                configuration.setWriteBOM(Boolean.TRUE);
+                configuration.setRecordDelimiter("\r\n");
+                exporter.setConfiguration(configuration);
                 exporter.exportReport();
             }
         }catch(Exception e){

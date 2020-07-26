@@ -20,7 +20,6 @@ import org.springframework.web.bind.annotation.*;
 import java.io.IOException;
 import net.sf.jasperreports.engine.JRException;
 import af.gov.anar.lib.jasper.entity.Report;
-import af.gov.anar.lib.jasper.service.ReportService;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -64,17 +63,13 @@ public class ReportController {
         return service.delete(id);
     }
 
-
     @GetMapping(value = "/download/{id}/{reportType}")
 	public void downloadReport(final HttpServletResponse response, final HttpServletRequest request,
 			@PathVariable("id") String id, @PathVariable("reportType") String reportType) throws IOException, JRException,SQLException ,Exception
      {
-        System.out.println("Entry>>>>downloadReport");
         try{
             Report reportRecord = this.service.findById(id);
             String returnedPath = this.service.generatePdfJasperReportFromDBRecord(reportRecord, reportType);
-            System.out.println("report id +++++++++++++++++++++" + id);
-            System.out.println("report type +++++++++++++++++++++" + reportType);
 
             this.service.downloadReport(returnedPath, response, id, reportType);
         }
