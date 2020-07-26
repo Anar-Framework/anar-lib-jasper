@@ -5,6 +5,7 @@
  */
 package af.gov.anar.lib.jasper.service;
 
+import java.sql.SQLException;
 import java.io.FileWriter;
 import java.io.File;
 import java.io.IOException;
@@ -34,6 +35,12 @@ import af.gov.anar.lib.jasper.entity.Report;
 import af.gov.anar.lib.jasper.repository.ReportRepository;
 import javax.servlet.http.HttpServletResponse;
 import af.gov.anar.lib.jasper.util.FileDownloadUtil;
+import net.sf.jasperreports.engine.export.JRXlsExporter;
+import net.sf.jasperreports.engine.JRExporter;
+import net.sf.jasperreports.engine.export.JRCsvExporter;
+import net.sf.jasperreports.engine.JRExporterParameter;
+import net.sf.jasperreports.engine.export.JRCsvExporterParameter;
+import net.sf.jasperreports.engine.export.JRXlsExporterParameter;
 
 @Service
 @PropertySource(value = "classpath:application.properties")
@@ -78,7 +85,7 @@ public class ReportService {
         return repository.save(obj);
     }
 
-    public String generatePdfJasperReportFromJRXMLFile(HashMap<String, Object> parameters, String jrxmlFile) throws IOException, JRException {
+    public String generatePdfJasperReportFromJRXMLFile(HashMap<String, Object> parameters, String jrxmlFile, String reportType) throws IOException, JRException,SQLException {
         /**
             This function generates a pdf report from a .jrxml file stored in the classpath
             
@@ -93,14 +100,14 @@ public class ReportService {
 
         // Fetching the .jrxml file from the resources folder.
         final InputStream stream = this.getClass().getResourceAsStream(jrxmlFile); 
-        String pdfFilePath = this.printJasperReport(stream, parameters);
+        String pdfFilePath = this.printJasperReport(stream, parameters, reportType);
 
         System.out.println("Report File Saved:-----------------" + pdfFilePath);
 
         return pdfFilePath;
     }
 
-    public String generatePdfJasperReportFromDBRecord(Report reportRecord) throws IOException, JRException {
+    public String generatePdfJasperReportFromDBRecord(Report reportRecord, String reportType) throws IOException, JRException, SQLException {
         /**
             This function generates a pdf report from a Report record that has the parameters and xml content
 
@@ -128,7 +135,7 @@ public class ReportService {
         //  Read the xmlContent code from the file
         final InputStream stream = new FileInputStream(tempJRXMLFile.getPath());
 
-        String pdfFilePath = this.printJasperReport(stream, parameters);
+        String pdfFilePath = this.printJasperReport(stream, parameters, reportType);
 
         System.out.println("Report Parameters:-----------------" + reportRecord.getParameters());
         System.out.println("Report File Saved:-----------------" + pdfFilePath);
@@ -137,17 +144,15 @@ public class ReportService {
     }
     
 
-    public HttpServletResponse downloadReport(String filePath, HttpServletResponse response, String id, String reportType) throws Exception{
+    public void downloadReport(String filePath, HttpServletResponse response, String id, String reportType) throws Exception{
         File file = new File(filePath);
    
         if (file.exists()) {
             fileDownloadUtil.fileDownload(file, response);
         }
-
-        return response;
     }
 
-    private String printJasperReport(InputStream stream, Map<String, Object> parameters) throws IOException, JRException{
+    private String printJasperReport(InputStream stream, Map<String, Object> parameters, String reportType) throws IOException, JRException,SQLException{
         
         /**
             This function generates a pdf file from the given stream with the given parameters and saves it into a 
@@ -155,9 +160,6 @@ public class ReportService {
 
             @return - returns the path of the temp file.
          */
-
-        // The Generated PDF file will be stored in a temp directory
-        String destFile = File.createTempFile("ebreshna-temp-report", ".pdf").getPath();
 
         // Compile the Jasper report from .jrxml to .japser
         final JasperReport report = JasperCompileManager.compileReport(stream);
@@ -170,7 +172,51 @@ public class ReportService {
             
             final JasperPrint print = JasperFillManager.fillReport(report, parameters, conn);
             // Export the report to a PDF file.
-            JasperExportManager.exportReportToPdfFile(print, destFile);
+
+            System.out.println("Report Export Type------------------------------------" + reportType);
+            System.out.println("reportType == pdf------------------------------------" + (reportType.equals("pdf")));
+            System.out.println("reportType == excel------------------------------------" + (reportType.equals("excel")));
+            System.out.println("reportType == csv------------------------------------" + (reportType.equals("csv")));
+            
+            // The Generated PDF file will be stored in a temp directory
+            String destFile = "";
+
+            
+            if(reportType.equals("pdf")){
+                System.out.println("generating pdf file report------------------------");
+                destFile = File.createTempFile("ebreshna-temp-report", ".pdf").getPath();
+                JasperExportManager.exportReportToPdfFile(print, destFile);
+            }
+            else if(reportType.equals("excel")){
+                System.out.println("generating pdf file report------------------------");
+
+                destFile = File.createTempFile("ebreshna-temp-report", ".xlsx").getPath();
+
+                // JRXlsExporter exporter = new JRXlsExporter();
+                JRExporter exporter = new JRXlsExporter();
+                exporter.setParameter(JRXlsExporterParameter.IS_REMOVE_EMPTY_SPACE_BETWEEN_ROWS, Boolean.TRUE);
+                exporter.setParameter(JRXlsExporterParameter.IS_WHITE_PAGE_BACKGROUND, Boolean.FALSE);
+                exporter.setParameter(JRXlsExporterParameter.IS_DETECT_CELL_TYPE, Boolean.TRUE);
+                //we set the one page per sheet parameter here
+                exporter.setParameter(JRXlsExporterParameter.IS_ONE_PAGE_PER_SHEET, Boolean.TRUE);
+                
+                exporter.setParameter(JRExporterParameter.JASPER_PRINT, print);
+                exporter.setParameter(JRExporterParameter.OUTPUT_FILE_NAME, destFile);
+  
+                // exporter.setParameter(JRExporterParameter.INPUT_STREAM, print);
+                // exporter.setParameter(JRExporterParameter.OUTPUT_FILE_NAME, destFile);
+                exporter.exportReport();
+            }
+            else if(reportType.equals("csv")){
+                System.out.println("generating html file report------------------------");
+                destFile = File.createTempFile("ebreshna-temp-report", ".csv").getPath();
+                
+                JRCsvExporter exporter = new JRCsvExporter();
+
+                exporter.setParameter(JRCsvExporterParameter.INPUT_STREAM, print);
+                exporter.setParameter(JRCsvExporterParameter.OUTPUT_FILE_NAME, destFile);
+                exporter.exportReport();
+            }
         }catch(Exception e){
             System.out.println("Some error has occurred while preparing the pdf Report." + e.getMessage());
             e.printStackTrace();

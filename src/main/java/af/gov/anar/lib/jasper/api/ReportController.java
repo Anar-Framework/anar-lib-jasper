@@ -11,6 +11,7 @@ import java.util.List;
 import javax.validation.Valid;
 import java.util.*; 
 
+import java.sql.SQLException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import af.gov.anar.lib.jasper.service.ReportService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -63,22 +64,23 @@ public class ReportController {
         return service.delete(id);
     }
 
+
     @GetMapping(value = "/download/{id}/{reportType}")
-    public HttpServletResponse downloadReport(@PathVariable("id") String id, @PathVariable("reportType") String reportType, HttpServletResponse response, HttpServletRequest request) throws IOException, Exception {
+	public void downloadReport(final HttpServletResponse response, final HttpServletRequest request,
+			@PathVariable("id") String id, @PathVariable("reportType") String reportType) throws IOException, JRException,SQLException ,Exception
+     {
+        System.out.println("Entry>>>>downloadReport");
         try{
-        Report reportRecord = this.service.findById(id);
-        String returnedPath = this.service.generatePdfJasperReportFromDBRecord(reportRecord);
-        System.out.println("report id +++++++++++++++++++++" + id);
-        System.out.println("report type +++++++++++++++++++++" + reportType);
+            Report reportRecord = this.service.findById(id);
+            String returnedPath = this.service.generatePdfJasperReportFromDBRecord(reportRecord, reportType);
+            System.out.println("report id +++++++++++++++++++++" + id);
+            System.out.println("report type +++++++++++++++++++++" + reportType);
 
-        response = this.service.downloadReport(returnedPath, response, id, reportType);
-
-
+            this.service.downloadReport(returnedPath, response, id, reportType);
         }
         catch(Exception e){
-            System.out.println("Some error has occurred while preparing the pdf Report." + e.getMessage());
+            System.out.println("Some error has occurred while preparing the pdf Report.---------------" + e.getMessage());
             e.printStackTrace();
         }
-        return response;
     }
 }
