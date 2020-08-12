@@ -34,14 +34,14 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 
 @Entity
-@Table(name = "report")
+@Table(name = "anar_reports")
 @Getter
 @Setter
 @AllArgsConstructor
 @Builder
 @ToString
 @Audited
-public class Report{
+public class AnarReport{
 
     @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "oid", unique = true)
@@ -84,7 +84,7 @@ public class Report{
     @CreationTimestamp
     private LocalDateTime createdAt;
 
-    public Report(String name, String description) {
+    public AnarReport(String name, String description) {
             this.name = name;
             this.description = description;
     }
@@ -95,7 +95,7 @@ public class Report{
 	}
 
         
-    public Report() {
+    public AnarReport() {
         if (id == null) {
             this.id = String.format("DABS%s%s", String.valueOf(System.nanoTime() / 100000000),
                     String.valueOf(System.currentTimeMillis() / 100000000));

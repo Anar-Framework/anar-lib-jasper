@@ -13,13 +13,13 @@ import java.util.*;
 
 import java.sql.SQLException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import af.gov.anar.lib.jasper.service.ReportService;
+import af.gov.anar.lib.jasper.service.AnarReportService;
+import af.gov.anar.lib.jasper.entity.AnarReport;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import java.io.IOException;
 import net.sf.jasperreports.engine.JRException;
-import af.gov.anar.lib.jasper.entity.Report;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -27,13 +27,14 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RestController;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.util.HashMap;
 
 @RestController
 @RequestMapping(value = "/api/config/reports")
-public class ReportController {
+public class AnarReportController {
 
     @Autowired
-    private ReportService service;
+    private AnarReportService service;
 
     ObjectMapper mapper = new ObjectMapper();
 
@@ -43,38 +44,38 @@ public class ReportController {
     }
 
     @GetMapping(value = "/{id}")
-    public Report findOne(@PathVariable("id") String id){
+    public AnarReport findOne(@PathVariable("id") String id){
         return service.findById(id);
     }
 
     @PostMapping(value = "", produces = MediaType.APPLICATION_JSON_VALUE)
-    public Report create(@Valid @RequestBody Report report) {
+    public AnarReport create(@Valid @RequestBody AnarReport report) {
         return service.create(report);
     }
 
     @PutMapping(value = "/{id}")
-    public Report update(@PathVariable("id") String id, @RequestBody Report report){
+    public AnarReport update(@PathVariable("id") String id, @RequestBody AnarReport report){
         report.setId(id);
         return service.update(report);
     }
 
     @DeleteMapping(value = "/{id}")
-    public Report delete(@PathVariable("id") Long id) {
+    public AnarReport delete(@PathVariable("id") Long id) {
         return service.delete(id);
     }
 
     @GetMapping(value = "/download/{id}/{reportType}")
 	public void downloadReport(final HttpServletResponse response, final HttpServletRequest request,
-			@PathVariable("id") String id, @PathVariable("reportType") String reportType) throws IOException, JRException,SQLException ,Exception
-     {
+			@PathVariable("id") String id, @PathVariable("reportType") String reportType, @PathVariable("locale") String locale) throws IOException, JRException,SQLException ,Exception
+    {
         try{
-            Report reportRecord = this.service.findById(id);
-            String returnedPath = this.service.generatePdfJasperReportFromDBRecord(reportRecord, reportType);
+            AnarReport reportRecord = this.service.findById(id);
+            String returnedPath = this.service.generatePdfJasperReportFromDBRecord(reportRecord, reportType, locale);
 
-            this.service.downloadReport(returnedPath, response, id, reportType);
+            this.service.downloadReport(returnedPath, response);
         }
         catch(Exception e){
-            System.out.println("Some error has occurred while preparing the pdf Report.---------------" + e.getMessage());
+            System.out.println("Some error has occurred while preparing the pdf AnarReport.---------------" + e.getMessage());
             e.printStackTrace();
         }
     }

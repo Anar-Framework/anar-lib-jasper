@@ -14,12 +14,12 @@ import javax.servlet.http.HttpServletResponse;
 
 /*
  *  @author Jalil
- *  The FileDownloadUtil class is to be used for file downloads, Centralizing
+ *  The AnarFileDownloadUtil class is to be used for file downloads, Centralizing
  *  this function is necessary because we need it in many controllers. 
  *    
  */
 @Component
-public class FileDownloadUtil {
+public class AnarFileDownloadUtil {
 
     /**
      * Method to do all the downloads

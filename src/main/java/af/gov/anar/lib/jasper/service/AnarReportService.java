@@ -30,11 +30,11 @@ import org.springframework.beans.factory.annotation.Value;
 import java.io.FileInputStream;
 import com.google.gson.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import af.gov.anar.lib.jasper.service.ReportService;
-import af.gov.anar.lib.jasper.entity.Report;
-import af.gov.anar.lib.jasper.repository.ReportRepository;
+import af.gov.anar.lib.jasper.service.AnarReportService;
+import af.gov.anar.lib.jasper.entity.AnarReport;
+import af.gov.anar.lib.jasper.repository.AnarReportRepository;
 import javax.servlet.http.HttpServletResponse;
-import af.gov.anar.lib.jasper.util.FileDownloadUtil;
+import af.gov.anar.lib.jasper.util.AnarFileDownloadUtil;
 import net.sf.jasperreports.engine.export.JRXlsExporter;
 import net.sf.jasperreports.engine.JRExporter;
 import net.sf.jasperreports.engine.export.JRCsvExporter;
@@ -43,16 +43,18 @@ import net.sf.jasperreports.engine.export.JRXlsExporterParameter;
 import net.sf.jasperreports.export.SimpleCsvExporterConfiguration;
 import net.sf.jasperreports.export.SimpleExporterInput;
 import net.sf.jasperreports.export.SimpleWriterExporterOutput;
+import java.util.HashMap;
+import net.sf.jasperreports.engine.JRParameter;
 
 @Service
 @PropertySource(value = "classpath:application.properties")
-public class ReportService {
+public class AnarReportService {
 
     @Autowired
-    private ReportRepository repository;
+    private AnarReportRepository repository;
     
     @Autowired
-    FileDownloadUtil fileDownloadUtil;
+    AnarFileDownloadUtil fileDownloadUtil;
 
     @Value("${spring.datasource.url}")
     private String datasourceUrl;
@@ -63,31 +65,31 @@ public class ReportService {
     @Value("${spring.datasource.password}")
     private String datasourcePassword;
 
-    public Report create(Report report){
+    public AnarReport create(AnarReport report){
         return repository.save(report);
     }
 
-    public Report update(Report report){
+    public AnarReport update(AnarReport report){
         return repository.save(report);
     }
 
-    public List<Report> findAll(){
+    public List<AnarReport> findAll(){
         return repository.findAll();
     }
 
-    public Report findById(String id){
+    public AnarReport findById(String id){
         return repository.findById(id);
     }
 
-    public Report delete(Long id)
+    public AnarReport delete(Long id)
     {
-        Report obj = repository.findById(id).get();
+        AnarReport obj = repository.findById(id).get();
         obj.setDeleted(true);
         obj.setDeletedAt(new Date());
         return repository.save(obj);
     }
 
-    public String generatePdfJasperReportFromJRXMLFile(HashMap<String, Object> parameters, String jrxmlFile, String reportType) throws IOException, JRException,SQLException {
+    public String generatePdfJasperReportFromJRXMLFile(HashMap<String, Object> parameters, String jrxmlFile, String reportType, String locale) throws IOException, JRException,SQLException {
         /**
             This function generates a pdf report from a .jrxml file stored in the classpath
             
@@ -107,9 +109,9 @@ public class ReportService {
         return pdfFilePath;
     }
 
-    public String generatePdfJasperReportFromDBRecord(Report reportRecord, String reportType) throws IOException, JRException, SQLException {
+    public String generatePdfJasperReportFromDBRecord(AnarReport reportRecord, String reportType, String locale) throws IOException, JRException, SQLException {
         /**
-            This function generates a pdf report from a Report record that has the parameters and xml content
+            This function generates a pdf report from a AnarReport record that has the parameters and xml content
 
             A usage Example can be:
             
@@ -120,10 +122,10 @@ public class ReportService {
 
         String xmlContent = reportRecord.getXmlContent();
 
-        // HashMap<String, Object> parameters = new Gson().fromJson(reportRecord.getParameters(), HashMap.class);
-
         ObjectMapper mapper = new ObjectMapper();
         Map<String, Object> parameters = mapper.readValue(reportRecord.getParameters(), Map.class);
+
+        parameters.put(JRParameter.REPORT_LOCALE, new Locale(locale));
 
         // First write the xmlContent string to a temporary file
         File tempJRXMLFile = File.createTempFile("ebreshna-temp-report", ".jrxml");
@@ -141,7 +143,7 @@ public class ReportService {
     }
     
 
-    public void downloadReport(String filePath, HttpServletResponse response, String id, String reportType) throws Exception{
+    public void downloadReport(String filePath, HttpServletResponse response) throws Exception{
         File file = new File(filePath);
    
         if (file.exists()) {
@@ -158,6 +160,7 @@ public class ReportService {
             @return - returns the path of the temp file.
          */
 
+        System.out.println("parameters+++++++++++++++++++++++++++++" + parameters);
         // Compile the Jasper report from .jrxml to .japser
         final JasperReport report = JasperCompileManager.compileReport(stream);
  
@@ -174,12 +177,12 @@ public class ReportService {
             // Export the report to a PDF file.
 
             if(reportType.equals("pdf")){
-                destFile = File.createTempFile("ebreshna-temp-report", ".pdf").getPath();
+                destFile = File.createTempFile("temp-jasper-report", ".pdf").getPath();
                 JasperExportManager.exportReportToPdfFile(print, destFile);
             }
             else if(reportType.equals("excel")){
 
-                destFile = File.createTempFile("ebreshna-temp-report", ".xlsx").getPath();
+                destFile = File.createTempFile("temp-jasper-report", ".xlsx").getPath();
 
                 // JRXlsExporter exporter = new JRXlsExporter();
                 JRExporter exporter = new JRXlsExporter();
@@ -197,7 +200,7 @@ public class ReportService {
                 exporter.exportReport();
             }
             else if(reportType.equals("csv")){
-                destFile = File.createTempFile("ebreshna-temp-report", ".csv").getPath();
+                destFile = File.createTempFile("temp-jasper-report", ".csv").getPath();
                 
                 JRCsvExporter exporter = new JRCsvExporter();
                 exporter = new JRCsvExporter();
@@ -210,7 +213,7 @@ public class ReportService {
                 exporter.exportReport();
             }
         }catch(Exception e){
-            System.out.println("Some error has occurred while preparing the pdf Report." + e.getMessage());
+            System.out.println("Some error has occurred while preparing the pdf AnarReport." + e.getMessage());
             e.printStackTrace();
         }
 
