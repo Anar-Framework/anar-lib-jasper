@@ -64,7 +64,7 @@ public class AnarReportController {
         return service.delete(id);
     }
 
-    @GetMapping(value = "/download/{id}/{reportType}")
+    @GetMapping(value = "/download/{id}/{reportType}/{locale}")
 	public void downloadReport(final HttpServletResponse response, final HttpServletRequest request,
 			@PathVariable("id") String id, @PathVariable("reportType") String reportType, @PathVariable("locale") String locale) throws IOException, JRException,SQLException ,Exception
     {
